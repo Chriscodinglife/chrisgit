@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+
+# bin/chrisgit-commit
+
+$LOAD_PATH << File.expand_path("../../lib", __FILE__)
+require "digest"
+require "time"
+require "chrisgit/object"
+
+CHRISGIT_DIRECTORY = "#{Dir.pwd}/.chrisgit".freeze
+INDEX_PATH = "#{CHRISGIT_DIRECTORY}/index"
+COMMIT_MESSAGE_TEMPLATE = <<-TXT
+# Title
+# 
+# Body
+TXT

@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+
+# bin/chrisgit-init
+
+CHRISGIT_DIRECTORY = ".chrisgit".freeze
+OBJECTS_DIRECTORY = "#{CHRISGIT_DIRECTORY}/objects".freeze
+REFS_DIRECTORY = "#{CHRISGIT_DIRECTORY}/refs".freeze
+
+# Quickly exit out if chrisgit was already initialized
+if Dir.exist? CHRISGIT_DIRECTORY
+  $stderr.puts "Existing ChrisGit project"
+  exit 1
+end
+
+def build_objects_directory
+  Dir.mkdir OBJECTS_DIRECTORY
+  Dir.mkdir "#{OBJECTS_DIRECTORY}/info"
+  Dir.mkdir "#{OBJECTS_DIRECTORY}/pack"
+end
+
+def build_refs_directory
+  Dir.mkdir REFS_DIRECTORY
+  Dir.mkdir "#{REFS_DIRECTORY}/heads"
+  Dir.mkdir "#{REFS_DIRECTORY}/tags"
+end
+
+def initialize_head
+  File.open("#{CHRISGIT_DIRECTORY}/HEAD", "w") do |file|
+    file.puts "ref: refs/heads/master"
+  end
+end
+
+def init_chrisgit
+  Dir.mkdir CHRISGIT_DIRECTORY
+  build_objects_directory
+  build_refs_directory
+  initialize_head
+  $stdout.puts "Chrisgit is initialized in #{CHRISGIT_DIRECTORY}"
+end
+
+init_chrisgit
