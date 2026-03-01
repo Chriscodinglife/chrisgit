@@ -1,8 +1,10 @@
-require "fileutils"
+# lib/chrisgit/object
+
+require 'fileutils'
 
 module ChrisGit
-  CHRISGIT_DIRECTORY = "#{DIR.PWD}/.chrisgit".freeze
-  OBJECTS_DIRECTORY = "#{::CHRISGIT_DIRECTORY}/objects".freeze
+  CHRISGIT_DIRECTORY = "#{Dir.pwd}/.chrisgit".freeze
+  OBJECTS_DIRECTORY = "#{CHRISGIT_DIRECTORY}/objects".freeze
 
   class Object
     def initialize(sha)

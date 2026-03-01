@@ -9,8 +9,104 @@ require "chrisgit/object"
 
 CHRISGIT_DIRECTORY = "#{Dir.pwd}/.chrisgit".freeze
 INDEX_PATH = "#{CHRISGIT_DIRECTORY}/index"
-COMMIT_MESSAGE_TEMPLATE = <<-TXT
-# Title
-# 
-# Body
-TXT
+
+def index_files
+  # We will grab all the paths that have been indexed
+  File.open(INDEX_PATH).each_line
+end
+
+def index_tree
+  # We will iterate through each index_file
+  index_files.each_with_object({}) do |line, obj|
+    # We will get the sha and the path that are part of each line in the index file
+    sha, path = line.split
+    # A segment is considered each part of the path
+    segments = path.split('/')
+    # Now we iterate through each segment
+    segments.reduce(obj) do |memo_obj, segment|
+      if segment == segments.last
+        # If we land in this if, it is because we landed at the last part of the segment which is a file.
+        # So we set the segment key to the sha
+        memo_obj[segments.last] = sha
+        memo_obj
+      else
+        # If we land in this else this means that the segment we are dealing with is a folder
+        # So we return a hash
+        memo_obj[segment] ||= {}
+        memo_obj[segment]
+      end
+    end
+  end
+end
+
+def build_tree(name, tree)
+  # We create a hash for the current folder
+  sha = Digest::SHA1.hexdigest(Time.now.iso8601 + name)
+  object = ChrisGit::Object.new(sha)
+
+  # We create a file to store the hashes of each sub directory and each file stored under the current folder
+  object.write do |file|
+    tree.each do |key, value|
+      if value.is_a?(Hash)
+        # If the value is basically a folder, then lets recursively go through this folder
+        dir_sha = build_tree(key, value)
+        # We store the sha and the name of the folder
+        file.puts "tree #{dir_sha} #{key}"
+      else
+        # We store the files sha and the name of the file
+        file.puts "blob #{value} #{key}"
+      end
+    end
+  end
+  sha
+end
+
+def build_commit(tree:)
+  commit_message_path = "#{CHRISGIT_DIRECTORY}/COMMIT_EDITMESSAGE"
+
+  puts 'Enter a title for your commit: '
+  title = gets.chomp
+  puts 'Enter details of your commit: '
+  body = gets.chomp
+
+  File.open(commit_message_path, 'a') do |file|
+    file.puts title
+    file.puts '#'
+    file.puts body
+  end
+
+  message = File.read commit_message_path
+  committer = 'user'
+  sha = Digest::SHA1.hexdigest(Time.now.iso8601 + committer)
+  object = ChrisGit::Object.new(sha)
+
+  object.write do |file|
+    file.puts "tree #{tree}"
+    file.puts "author #{committer}"
+    file.puts
+    file.puts message
+  end
+  sha
+end
+
+def update_ref(commit_sha:)
+  current_branch = File.read("#{CHRISGIT_DIRECTORY}/HEAD").strip.split.last
+
+  File.open("#{CHRISGIT_DIRECTORY}/#{current_branch}", 'w') do |file|
+    file.print commit_sha
+  end
+end
+
+def clear_index
+  File.truncate INDEX_PATH, 0
+end
+
+if index_files.count.zero?
+  $stderr.puts 'Nothing to commit'
+  exit 1
+end
+
+root_sha = build_tree('root', index_tree)
+commit_sha = build_commit(tree: root_sha)
+update_ref(commit_sha: commit_sha)
+clear_index
